@@ -44,6 +44,11 @@ class Crawler extends EventEmitter {
             track: { src: true },
             video: { poster: true, src: true }
 
+            html
+            css
+            js
+            media
+
             // https://github.com/inikulin/parse5
             // parseHTML
         });
