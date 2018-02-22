@@ -53,3 +53,7 @@ request one
                 mark "other"
     other
 
+缓存
+并发
+超时
+错误重试
