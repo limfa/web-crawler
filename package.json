@@ -2,6 +2,7 @@
   "dependencies": {
     "parse5": "^4.0.0",
     "postcss": "^6.0.17",
-    "postcss-value-parser": "^3.3.0"
+    "postcss-value-parser": "^3.3.0",
+    "srcset": "^1.0.0"
   }
 }
