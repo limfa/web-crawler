@@ -1,9 +1,10 @@
 const EventEmitter = require('events')
 const urlModule = require('url')
-const request = require('request-promise')
 const htmlHandler = require('./lib/htmlHandler')
 const cssHandler = require('./lib/cssHandler')
-
+const limitRequest = require('limit-request');
+const fs = require('fs-extra')
+const path = require('path')
 // class Crawler extends EventEmitter {
 //     constructor(url, config, parent = null) {
 //         this.config = extend({
@@ -66,8 +67,29 @@ const cssHandler = require('./lib/cssHandler')
 //     constructor(){}
 // }
 
+const request = new limitRequest({
+    // 编码
+    // encoding : 'utf-8',
+    // 限制请求数
+    limitCount: 3,
+    // 超时时间
+    timeout: 30000,
+    // 允许累计错误次数
+    allowErrorCount: 3,
+    // 每条请求至少的间隔时间
+    // requestInterval: 800,
+});
+
+request.on('error', function(name, type) {
+    console.log(type, name);
+}).on('fail', function(name) {
+    console.log('fail', name);
+});
+
 const MAX_LEVEL = 2
 const queue = []
+const handlerCache = {}
+
 const rootItem = {
     url: 'https://www.gxq168.com',
     type: 'page',
@@ -76,59 +98,78 @@ const rootItem = {
     children: [],
 }
 
-handler(rootItem).then(handlerQueue).then(() => {
+handler(rootItem).then(() => {
     function fn(item) {
-        console.log('—'.repeat(item.level), item.url)
+        console.log('—'.repeat(item.level), item.url, item.type)
         item.children.forEach(fn)
     }
     fn(rootItem)
 })
 
 function handler(current) {
+    if (current.url in handlerCache) {
+        return Promise.resolve()
+    }
+    if (['www.gxq168.com', 'static.fujiacf.com'].indexOf(urlModule.parse(current.url).hostname) == -1) {
+        return Promise.resolve()
+    }
+    if (current.level > MAX_LEVEL) {
+        return Promise.resolve()
+    }
+    console.log(current.url, current.type)
+    handlerCache[current.url] = true
     switch (current.type) {
         case 'page':
             return _request(current, htmlHandler)
         case 'style':
             return _request(current, cssHandler)
         case 'image':
+            return request.saveImage({
+                src: current.url,
+                dist: url2saveName(current.url),
+            })
     }
     return Promise.resolve()
 }
 
 function _request(current, textHandler) {
-    return request(current.url).then(text => {
+    const ps = []
+    const url = current.url
+    return request.getHtml({ url }).then(res => {
+        const text = res.body
         if (current.level < MAX_LEVEL) {
             const level = current.level + 1
             return textHandler(text, (value) => {
+                const newUrl = urlModule.resolve(url, value.url)
                 const item = {
-                    url: urlModule.resolve(current.url, value.url),
+                    url: newUrl,
                     type: value.type,
                     level,
                     parent: current,
                     children: [],
                 }
                 current.children.push(item)
-                queue.push(item)
+                ps.push(handler(item))
+                return url2saveName(newUrl)
             })
         }
+        return text
     }, err => {
-        console.error(current.url, err.message)
+        console.error(url, err.message)
     }).then(text => {
-        // todo
+        // 保存文件
+        const saveName = url2saveName(url)
+        const p = fs.ensureFile(saveName).then(() => {
+            return fs.writeFile(saveName, text)
+        })
+        ps.push(p)
+    }).then(() => {
+        return Promise.all(ps)
     })
 }
 
-const handlerCache = {}
-
-function handlerQueue() {
-    let current = queue.shift()
-    if (!current) return
-    if (current.url in handlerCache) return handlerQueue()
-    if (urlModule.parse(current.url).host != 'www.gxq168.com') return handlerQueue()
-    console.log(current.url)
-    if (current.level > MAX_LEVEL) {
-        return handlerQueue()
-    }
-    handlerCache[current.url] = true
-    return handler(current).then(handlerQueue)
+function url2saveName(url) {
+    const q = urlModule.parse(url)
+    if (q.pathname.slice(-1) == '/') q.pathname = '/index.html'
+    return path.join(__dirname, '_tmp', q.hostname, q.pathname)
 }

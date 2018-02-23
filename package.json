@@ -1,10 +1,10 @@
 {
   "dependencies": {
+    "fs-extra": "^5.0.0",
+    "limit-request": "limfa/limit-request",
     "parse5": "^4.0.0",
     "postcss": "^6.0.17",
     "postcss-value-parser": "^3.3.0",
-    "request": "^2.83.0",
-    "request-promise": "^4.2.2",
     "srcset": "^1.0.0"
   }
 }

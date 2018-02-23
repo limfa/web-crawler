@@ -53,7 +53,11 @@ request one
                 mark "other"
     other
 
-缓存
+<!-- 缓存
 并发
 超时
-错误重试
+错误重试 -->
+
+todo
+<link rel="shortcut icon" href="//static.fujiacf.com/web/index/img/favicon.ico?v=1.2.3.0" type="image/x-icon">
+<link rel="icon" href="//static.fujiacf.com/web/index/img/favicon.ico?v=1.2.3.0" type="image/x-icon">
