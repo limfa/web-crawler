@@ -1,3 +1,4 @@
-/node_modules
-/sublime.sublime-project
-/sublime.sublime-workspace
+node_modules
+sublime.sublime-project
+sublime.sublime-workspace
+/test/.save

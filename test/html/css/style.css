@@ -1,0 +1,7 @@
+@import url("./style1.css");
+@import "./style2.css";
+body{
+    color: blue;
+    BACKGROUND-image: url(../img/2.png);
+    background-repeat: no-repeat;
+}

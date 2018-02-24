@@ -61,3 +61,4 @@ request one
 todo
 <link rel="shortcut icon" href="//static.fujiacf.com/web/index/img/favicon.ico?v=1.2.3.0" type="image/x-icon">
 <link rel="icon" href="//static.fujiacf.com/web/index/img/favicon.ico?v=1.2.3.0" type="image/x-icon">
+<base href="https://www.baidu.com/">
