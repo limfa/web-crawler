@@ -62,3 +62,11 @@ todo
 <link rel="shortcut icon" href="//static.fujiacf.com/web/index/img/favicon.ico?v=1.2.3.0" type="image/x-icon">
 <link rel="icon" href="//static.fujiacf.com/web/index/img/favicon.ico?v=1.2.3.0" type="image/x-icon">
 <base href="https://www.baidu.com/">
+
+add api
+queue item status
+pause resume
+
+add log
+
+模块化 保存文件做成可插式

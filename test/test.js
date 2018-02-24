@@ -25,9 +25,9 @@ const crawler = new Crawler({
 })
 
 crawler.requester.on('error', function(name, type) {
-    console.log(type, name)
+    console.log('requester error', type instanceof Error ? type.message : type, name)
 }).on('fail', function(name) {
-    console.log('fail', name)
+    console.log('requester fail', name)
 })
 
 crawler.on('doing', current => {
@@ -36,8 +36,9 @@ crawler.on('doing', current => {
     console.log('filtered', current.url, current.type)
 }).on('finish', rootItem => {
     console.log('finish')
+}).on('error', (e) => {
+    console.log('error', e.target.url, e.error.message)
 })
-
 // 抓取入口
 crawler.run({
     url: 'http://localhost:3004/',
@@ -58,4 +59,6 @@ crawler.run({
         item.children.forEach(fn)
     }
     fn(rootItem)
+}).catch(err => {
+    console.log('Exception', err.stack)
 })

@@ -35,6 +35,7 @@ class Crawler extends EventEmitter {
         if (current.url in this._doneCache) {
             return Promise.resolve()
         }
+        this._doneCache[current.url] = true
         return Promise.resolve(this.options.filter(current)).then(bool => {
             if (!bool) {
                 rm4arr(current.parent.children, current)
@@ -45,7 +46,6 @@ class Crawler extends EventEmitter {
             if (current.level > this.options.maxLevel) {
                 return Promise.resolve()
             }
-            this._doneCache[current.url] = true
             this.emit('doing', current)
             switch (current.type) {
                 case 'page':
@@ -63,6 +63,8 @@ class Crawler extends EventEmitter {
                         return this.requester.saveStream({
                             src: current.url,
                             dist,
+                        }).catch((error) => {
+                            this.emit('error', { target: current, error })
                         })
                     })
 
@@ -79,24 +81,29 @@ class Crawler extends EventEmitter {
             if (current.level < this.options.maxLevel) {
                 const level = current.level + 1
                 const parentDirname = path.dirname(current.savePath)
-                return textHandler(text, (value) => {
-                    const newUrl = urlModule.resolve(url, value.url)
-                    const item = {
-                        url: newUrl,
-                        type: value.type,
-                        level,
-                        parent: current,
-                        children: [],
-                        savePath: this._url2savePath(newUrl),
-                    }
-                    current.children.push(item)
-                    ps.push(this._handler(item))
-                    return fixPath(path.relative(parentDirname, item.savePath))
-                })
+                try {
+                    return textHandler(text, (value) => {
+                        const newUrl = urlModule.resolve(url, value.url)
+                        const item = {
+                            url: newUrl,
+                            type: value.type,
+                            level,
+                            parent: current,
+                            children: [],
+                            savePath: this._url2savePath(newUrl),
+                        }
+                        current.children.push(item)
+                        ps.push(this._handler(item))
+                        return fixPath(path.relative(parentDirname, item.savePath))
+                    })
+                } catch (error) {
+                    this.emit('error', { target: current, error })
+                }
             }
             return text
-        }, err => {
-            console.error(url, err.message)
+        }, error => {
+            this.emit('error', { target: current, error })
+            return ''
         }).then(text => {
             const p = saveFile(this._url2savePath(url), text)
             ps.push(p)
@@ -133,7 +140,7 @@ function fixPath(p) {
     return p.replace(/\\/g, '/')
 }
 
-function rm4arr(arr, item){
+function rm4arr(arr, item) {
     let i = arr.indexOf(item)
     arr.splice(i, 1)
 }
