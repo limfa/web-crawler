@@ -6,29 +6,31 @@ const limitRequest = require('limit-request');
 const fs = require('fs-extra')
 const path = require('path')
 const extend = require('extend')
+const filenamify = require('filenamify')
 
 class Crawler extends EventEmitter {
     constructor(options) {
         super()
         this.options = extend(true, {
             requestOptions: {
-                limitCount: 3,
-                timeout: 30000,
-                allowErrorCount: 3,
+                limitCount: 10,
+                timeout: 10000,
+                allowErrorCount: 2,
             },
             savePath: path.join(process.cwd(), '.save'),
             maxLevel: 1,
             filter: () => true,
         }, options)
 
-        this.requester = new limitRequest(options.requestOptions)
+        this.requester = new limitRequest(this.options.requestOptions)
         this._doneCache = {}
     }
 
     _url2savePath(url) {
         const q = urlModule.parse(url)
-        if (q.pathname.slice(-1) == '/') q.pathname = '/index.html'
-        return fixPath(path.join(this.options.savePath, q.hostname, q.pathname))
+        if (q.pathname.slice(-1) == '/') q.pathname += 'index.html'
+        const name = q.pathname + (q.search ? '!' + filenamify(q.search) : '')
+        return fixPath(path.join(this.options.savePath, q.hostname, name))
     }
 
     _handler(current) {
@@ -38,24 +40,21 @@ class Crawler extends EventEmitter {
         this._doneCache[current.url] = true
         return Promise.resolve(this.options.filter(current)).then(bool => {
             if (!bool) {
-                rm4arr(current.parent.children, current)
-                this.emit('filtered', current)
-                return Promise.resolve()
+                if (current.parent) rm4arr(current.parent.children, current)
+                this.emit('filtered', { target: current })
+                return
             }
 
             if (current.level > this.options.maxLevel) {
-                return Promise.resolve()
+                return
             }
-            this.emit('doing', current)
+            this.emit('doing', { target: current })
             switch (current.type) {
                 case 'page':
                     return this._request(current, htmlHandler)
                 case 'style':
                     return this._request(current, cssHandler)
                 case 'script':
-                    return this.requester.getHtml({ url: current.url }).then(res => {
-                        return saveFile(this._url2savePath(current.url), res.body)
-                    })
                 case 'image':
                 default:
                     let dist = this._url2savePath(current.url)
@@ -63,20 +62,21 @@ class Crawler extends EventEmitter {
                         return this.requester.saveStream({
                             src: current.url,
                             dist,
-                        }).catch((error) => {
-                            this.emit('error', { target: current, error })
+                        }).then(() => {
+                            this.emit('done', { target: current })
+                        }, (error) => {
+                            this.emit('fail', { target: current, error })
                         })
                     })
-
             }
-            return Promise.resolve()
+            return
         })
     }
 
     _request(current, textHandler) {
         const ps = []
         const url = current.url
-        return this.requester.getHtml({ url }).then(res => {
+        return this.requester.getHtml({ url, encoding: null }).then(res => {
             const text = res.body
             if (current.level < this.options.maxLevel) {
                 const level = current.level + 1
@@ -102,10 +102,12 @@ class Crawler extends EventEmitter {
             }
             return text
         }, error => {
-            this.emit('error', { target: current, error })
+            this.emit('fail', { target: current, error })
             return ''
         }).then(text => {
-            const p = saveFile(this._url2savePath(url), text)
+            const p = saveFile(this._url2savePath(url), text).then(() => {
+                this.emit('done', { target: current })
+            })
             ps.push(p)
         }).then(() => {
             return Promise.all(ps)
@@ -122,7 +124,7 @@ class Crawler extends EventEmitter {
         }, rootItem)
 
         return this._handler(rootItem).then(() => {
-            this.emit('finish', rootItem)
+            this.emit('finish', { target: rootItem })
             return rootItem
         })
     }
