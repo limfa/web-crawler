@@ -140,11 +140,11 @@ class Crawler extends EventEmitter {
 
     run(rootItem) {
         rootItem.savePath = this._url2savePath(rootItem.url)
-        const item = new Item(rootItem)
+        this.rootItem = new Item(rootItem)
 
-        return this._handler(item).then(() => {
-            this.emit('finish', { target: item })
-            return item
+        return this._handler(this.rootItem).then(() => {
+            this.emit('finish', { target: this.rootItem })
+            return this.rootItem
         })
     }
 }
