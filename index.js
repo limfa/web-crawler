@@ -57,8 +57,9 @@ class Crawler extends EventEmitter {
     }
 
     _handler(current) {
+        const key = current.type + '|' + current.url
         const main = () => {
-            this._doneCache[current.url] = current
+            this._doneCache[key] = current
             return Promise.resolve(this.options.filter(current)).then(bool => {
                 if (!bool) {
                     current.filtered()
@@ -84,26 +85,10 @@ class Crawler extends EventEmitter {
                 return
             })
         }
-        const cacheOrigin = this._doneCache[current.url]
+        const cacheOrigin = this._doneCache[key]
         if (cacheOrigin) {
-            if (!Item.isResultStatus(cacheOrigin)) {
-                return new Promise((resolve, reject) => {
-                    let fn = e => {
-                        if (!Item.isResultStatus(cacheOrigin)) {
-                            cacheOrigin.once('statusChanged', fn)
-                        } else {
-                            if (cacheOrigin.status === Item.ERROR) {
-                                return main().then(resolve, reject)
-                            }
-                            resolve()
-                        }
-                    }
-                    cacheOrigin.once('statusChanged', fn)
-                })
-            } else if (cacheOrigin.status !== Item.ERROR) {
-                current.cached(cacheOrigin)
-                return Promise.resolve()
-            }
+            current.cached(cacheOrigin)
+            return Promise.resolve()
         }
         return main()
     }
@@ -134,6 +119,7 @@ class Crawler extends EventEmitter {
                     ps.push(this._handleContent(current, text))
                 })
             } catch (error) {
+                current.error(error)
                 this.emit('fail', { target: current, error })
             }
         }, error => {
