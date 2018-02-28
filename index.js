@@ -56,12 +56,11 @@ class Crawler extends EventEmitter {
                     case 'script':
                     case 'image':
                     default:
-                        let dist = this._url2savePath(current.url)
-                        return fs.ensureFile(dist).then(() => {
+                        return fs.ensureFile(current.savePath).then(() => {
                             current.doing()
                             return this.requester.saveStream({
                                 src: current.url,
-                                dist,
+                                dist: current.savePath,
                             }).then(() => {
                                 current.success()
                                 this.emit('done', { target: current })
@@ -122,7 +121,7 @@ class Crawler extends EventEmitter {
                     ps.push(this._handler(item))
                     return fixPath(path.relative(parentDirname, item.savePath))
                 }).then(text => {
-                    const p = saveFile(this._url2savePath(url), text).then(() => {
+                    const p = saveFile(current.savePath, text).then(() => {
                         this.emit('done', { target: current })
                     })
                     ps.push(p)

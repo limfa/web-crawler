@@ -53,49 +53,49 @@ crawler.on('fail', ({ target, error }) => {
 })
 
 
-// crawler.on('finish', ({ target }) => {
-//     console.log('finish')
-
-//     function fn(item) {
-//         console.log('—'.repeat(item.level), item._index || ' ' ,item.url, item.status, item.type)
-//         item.children.forEach(fn)
-//     }
-//     fn(target)
-// })
-// // 抓取入口
-// crawler.options.filter = (current)=>{
-//     return ['localhost'].indexOf(urlModule.parse(current.url).hostname) >= 0
-// }
-// crawler.run({
-//     url: 'http://localhost:3004/',
-// }).then(rootItem => {
-
-// }).catch(err => {
-//     console.log('Exception', err.stack)
-//     process.exit(1)
-// })
-
 crawler.on('finish', ({ target }) => {
     console.log('finish')
 
     function fn(item) {
-        // let lc = item.listenerCount('statusChanged')
-        // if(lc > 0) console.log(item.url, lc)
-        if (item.type != 'page' || item.status != 'SUCCESS') return
-        console.log('—'.repeat(item.level), item._index || ' ', item.url, item.status, item.type)
+        console.log('—'.repeat(item.level), item._index || ' ' ,item.url, item.status, item.type)
         item.children.forEach(fn)
     }
     fn(target)
 })
-crawler.options.filter = (current) => {
-    return ['www.gxq168.com', 'static.fujiacf.com'].indexOf(urlModule.parse(current.url).hostname) >= 0
+// 抓取入口
+crawler.options.filter = (current)=>{
+    return ['localhost'].indexOf(urlModule.parse(current.url).hostname) >= 0
 }
 crawler.run({
-    url: 'https://www.gxq168.com/',
-    type: 'page',
+    url: 'http://localhost:3004/',
 }).then(rootItem => {
 
 }).catch(err => {
     console.log('Exception', err.stack)
     process.exit(1)
 })
+
+// crawler.on('finish', ({ target }) => {
+//     console.log('finish')
+
+//     function fn(item) {
+//         // let lc = item.listenerCount('statusChanged')
+//         // if(lc > 0) console.log(item.url, lc)
+//         if (item.type != 'page' || item.status != 'SUCCESS') return
+//         console.log('—'.repeat(item.level), item._index || ' ', item.url, item.status, item.type)
+//         item.children.forEach(fn)
+//     }
+//     fn(target)
+// })
+// crawler.options.filter = (current) => {
+//     return ['www.gxq168.com', 'static.fujiacf.com'].indexOf(urlModule.parse(current.url).hostname) >= 0
+// }
+// crawler.run({
+//     url: 'https://www.gxq168.com/',
+//     type: 'page',
+// }).then(rootItem => {
+
+// }).catch(err => {
+//     console.log('Exception', err.stack)
+//     process.exit(1)
+// })
