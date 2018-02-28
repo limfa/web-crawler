@@ -26,6 +26,28 @@ class Crawler extends EventEmitter {
         this._doneCache = {}
     }
 
+    handleContent(current, text = null){
+        return fs.ensureFile(current.savePath).then(() => {
+            if(typeof text == 'string'){
+                return fs.writeFile(current.savePath, text)
+            }
+            return this.requester.saveStream({
+                src: current.url,
+                dist: current.savePath,
+            })
+        })
+    }
+
+    _handleContent(current, ...arg){
+        return Promise.resolve(this.handleContent(current, ...arg)).then(() => {
+            current.success()
+            this.emit('done', { target: current })
+        }, (error) => {
+            current.error(error)
+            this.emit('fail', { target: current, error })
+        })
+    }
+
     _url2savePath(url) {
         const q = urlModule.parse(url)
         if (q.pathname.slice(-1) == '/') q.pathname += 'index.html'
@@ -56,19 +78,8 @@ class Crawler extends EventEmitter {
                     case 'script':
                     case 'image':
                     default:
-                        return fs.ensureFile(current.savePath).then(() => {
-                            current.doing()
-                            return this.requester.saveStream({
-                                src: current.url,
-                                dist: current.savePath,
-                            }).then(() => {
-                                current.success()
-                                this.emit('done', { target: current })
-                            }, (error) => {
-                                current.error(error)
-                                this.emit('fail', { target: current, error })
-                            })
-                        })
+                        current.doing()
+                        return this._handleContent(current)
                 }
                 return
             })
@@ -102,7 +113,6 @@ class Crawler extends EventEmitter {
         const url = current.url
         current.doing()
         return this.requester.getHtml({ url, encoding: null }).then(res => {
-            current.success()
             const text = res.body
             const level = current.level + 1
             const parentDirname = path.dirname(current.savePath)
@@ -121,10 +131,7 @@ class Crawler extends EventEmitter {
                     ps.push(this._handler(item))
                     return fixPath(path.relative(parentDirname, item.savePath))
                 }).then(text => {
-                    const p = saveFile(current.savePath, text).then(() => {
-                        this.emit('done', { target: current })
-                    })
-                    ps.push(p)
+                    ps.push(this._handleContent(current, text))
                 })
             } catch (error) {
                 this.emit('fail', { target: current, error })
