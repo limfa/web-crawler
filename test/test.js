@@ -1,3 +1,4 @@
+const serverPromise = require('./server')
 const path = require('path')
 const extend = require('extend')
 const urlModule = require('url')
@@ -66,13 +67,16 @@ crawler.on('finish', ({ target }) => {
 crawler.options.filter = (current)=>{
     return ['localhost'].indexOf(urlModule.parse(current.url).hostname) >= 0
 }
-crawler.run({
-    url: 'http://localhost:3004/',
-}).then(rootItem => {
 
-}).catch(err => {
-    console.log('Exception', err.stack)
-    process.exit(1)
+serverPromise.then(server=>{
+    crawler.run({
+        url: 'http://localhost:3004/',
+    }).then(rootItem => {
+        server.close()
+    }).catch(err => {
+        console.log('Exception', err.stack)
+        process.exit(1)
+    })
 })
 
 // crawler.on('finish', ({ target }) => {

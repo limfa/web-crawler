@@ -1,9 +1,22 @@
 const path = require('path')
-const express = require('express')
-const app = express()
-app.use(express.static(path.join(__dirname, 'html')))
-const server = app.listen(3004, ()=>{
-    const host = server.address().address
-    const port = server.address().port
-    console.log('listening at http://%s:%s', host, port)
+const fs = require('fs')
+const http = require('http')
+
+const DIR = path.join(__dirname, 'html')
+
+module.exports = new Promise((resolve, reject) => {
+    const server = http.createServer((request, response)=>{
+        let url = request.url == '/'? '/index.html': request.url
+        url = path.join(DIR, url)
+        if(fs.existsSync(url)){
+            fs.createReadStream(url).pipe(response)
+        }else{
+            response.writeHead(404)
+            response.end('404')
+        }
+    }).on('error', reject).listen(3004, ()=>{
+        const {address, port} = server.address()
+        console.log(`Listening ${address}:${port}`)
+        resolve(server)
+    })
 })
